@@ -3,7 +3,7 @@ import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
-
+import os
 
 # Функция для загрузки данных
 def load_data():
@@ -36,6 +36,17 @@ def load_data():
 
     return pd.concat(data, ignore_index=True), pd.concat(labels, ignore_index=True)
 
+# Функция для сохранения модели
+def save_model(model, filename):
+    model.save_model(filename)
+    print(f"Модель сохранена в {filename}")
+
+# Функция для загрузки модели
+def load_model(filename):
+    model = xgb.XGBClassifier()
+    model.load_model(filename)
+    print(f"Модель загружена из {filename}")
+    return model
 
 # Загрузка данных
 X, y = load_data()
@@ -49,9 +60,15 @@ y = y[valid_indices]
 X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, random_state=42)  # 60% на обучение, 40% на временную тестовую выборку
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)  # 20% на валидацию, 20% на тест
 
-# Обучение модели XGBoost с валидацией
-model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', early_stopping_rounds=10)
-model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+# Проверяем, существует ли уже сохраненная модель
+model_filename = 'xgb_model.json'
+if os.path.exists(model_filename):
+    model = load_model(model_filename)  # Загружаем модель, если она существует
+else:
+    # Обучение модели XGBoost с валидацией
+    model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', early_stopping_rounds=10)
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+    save_model(model, model_filename)   # Сохраняем созданную модель
 
 # Оценка важности фич
 importances = model.feature_importances_
