@@ -1,6 +1,6 @@
 import pandas as pd
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, classification_report, recall_score
 import matplotlib.pyplot as plt
 import os
@@ -51,18 +51,34 @@ def load_model(filename):
 # Загрузка данных
 X, y = load_data()
 
+# Проверка распределения классов в исходных данных
+print("Распределение классов в исходных данных:")
+print(y.value_counts())
+
 # Обработка меток кластеров: удаление строк с метками `-1`
 valid_indices = y != -1
 X = X[valid_indices]
 y = y[valid_indices]
 
+# Проверка распределения классов после удаления `-1`
+print("\nРаспределение классов после удаления -1:")
+print(y.value_counts())
+
 # Разделение данных на обучающую, валидационную и тестовую выборки
 X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, random_state=42)  # 60% на обучение, 40% на временную тестовую выборку
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)  # 20% на валидацию, 20% на тест
 
+# Проверка распределения классов в обучающей и тестовой выборках
+print("\nРаспределение классов в обучающей выборке:")
+print(y_train.value_counts())
+print("\nРаспределение классов в валидационной выборке:")
+print(y_val.value_counts())
+print("\nРаспределение классов в тестовой выборке:")
+print(y_test.value_counts())
+
 # Проверяем, существует ли уже сохраненная модель
 model_filename = 'xgb_model.json'
-if (os.path.exists(model_filename)):
+if os.path.exists(model_filename):
     model = load_model(model_filename)  # Загружаем модель, если она существует
 else:
     # Обучение модели XGBoost с валидацией
