@@ -1,7 +1,7 @@
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report, recall_score
 import matplotlib.pyplot as plt
 import os
 
@@ -62,7 +62,7 @@ X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, r
 
 # Проверяем, существует ли уже сохраненная модель
 model_filename = 'xgb_model.json'
-if os.path.exists(model_filename):
+if (os.path.exists(model_filename)):
     model = load_model(model_filename)  # Загружаем модель, если она существует
 else:
     # Обучение модели XGBoost с валидацией
@@ -75,9 +75,18 @@ importances = model.feature_importances_
 feature_importances = pd.DataFrame({'Feature': X.columns, 'Importance': importances})
 feature_importances = feature_importances.sort_values(by='Importance', ascending=False)
 
-# Оценка точности модели
+# Оценка точности и полноты модели
 y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred, average='weighted')
+
+# Вывод отчета по метрикам классификации в консоль
+print("Classification Report:\n")
+print(classification_report(y_test, y_pred, zero_division=0))
+
+# Вывод важности фич в консоль
+print("\nFeature Importances:\n")
+print(feature_importances)
 
 # Визуализация важности фич с значениями важности
 plt.figure(figsize=(10, 8))
@@ -90,10 +99,8 @@ plt.title('Feature Importances')
 for index, value in enumerate(feature_importances['Importance']):
     plt.text(index, value, f'{value:.4f}', ha='center', va='bottom')
 
-# Отображение точности модели на графике
-plt.text(len(feature_importances) - 1, max(feature_importances['Importance']), f'Accuracy: {accuracy:.4f}',
-         ha='right', va='bottom', fontsize=12, color='red')
-
-print(f'Accuracy: {accuracy:.4f}')
+# Отображение точности и полноты модели на графике
+plt.text(len(feature_importances) - 1, max(feature_importances['Importance']), f'Accuracy: {accuracy:.4f}\nRecall: {recall:.4f}',
+         ha='right', va='top', fontsize=12, color='red')
 
 plt.show()
