@@ -55,13 +55,13 @@ X, y = load_data()
 print("Распределение классов в исходных данных:")
 print(y.value_counts())
 
-# Обработка меток кластеров: удаление строк с метками `-1`
-valid_indices = y != -1
+# Обработка меток кластеров: удаление строк с метками `-1` и `3`
+valid_indices = y.isin([0, 1, 2])
 X = X[valid_indices]
 y = y[valid_indices]
 
-# Проверка распределения классов после удаления `-1`
-print("\nРаспределение классов после удаления -1:")
+# Проверка распределения классов после удаления аномальных данных
+print("\nРаспределение классов после удаления аномальных данных:")
 print(y.value_counts())
 
 # Разделение данных на обучающую, валидационную и тестовую выборки
@@ -81,8 +81,32 @@ model_filename = 'xgb_model.json'
 if os.path.exists(model_filename):
     model = load_model(model_filename)  # Загружаем модель, если она существует
 else:
-    # Обучение модели XGBoost с валидацией
-    model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss', early_stopping_rounds=10)
+    # Определение параметров для поиска
+    param_grid = {
+        'max_depth': [3, 4, 5, 6],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2],
+        'n_estimators': [100, 200, 300],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0],
+        'gamma': [0, 0.1, 0.2, 0.3]
+    }
+
+    # Поиск гиперпараметров
+    grid_search = GridSearchCV(estimator=xgb.XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
+                               param_grid=param_grid,
+                               scoring='accuracy',
+                               cv=3,
+                               verbose=1,
+                               n_jobs=-1)
+
+    grid_search.fit(X_train, y_train)
+
+    # Получение лучших параметров
+    best_params = grid_search.best_params_
+    print(f"Лучшие параметры: {best_params}")
+
+    # Обучение модели с лучшими параметрами
+    model = xgb.XGBClassifier(**best_params, use_label_encoder=False, eval_metric='mlogloss')
     model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     save_model(model, model_filename)   # Сохраняем созданную модель
 
